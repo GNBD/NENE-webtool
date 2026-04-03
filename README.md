@@ -31,13 +31,3 @@ UI/Design: Tailwind CSS, Inter Font, Heroicons
 Core Engine: Vanilla JavaScript, HTML5 Canvas API
 
 Architecture: Serverless Pure Client-side Web App
-
-🚀 시작하기
-
-이 프로젝트는 별도의 서버 설정이 필요 없는 순수 HTML 파일로 구성됩니다.
-
-저장소를 클론하거나 다운로드합니다.
-
-index.html과 ne.html 파일이 동일한 폴더에 있는지 확인합니다.
-
-브라우저로 index.html을 실행합니다.
