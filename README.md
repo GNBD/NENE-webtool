@@ -31,3 +31,6 @@ UI/Design: Tailwind CSS, Inter Font, Heroicons
 Core Engine: Vanilla JavaScript, HTML5 Canvas API
 
 Architecture: Serverless Pure Client-side Web App
+
+⚠️ Caution
+The code and documentation of this project were generated using AI technology.
