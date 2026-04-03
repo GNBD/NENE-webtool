@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나이스 바이트 계산기</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+        :root {
+            /* 완전히 새로운 컬러 팔레트: Professional Slate & Emerald */
+            --brand-main: #0d9488;
+            --brand-dark: #0f172a;
+            --brand-light: #f0fdfa;
+            --accent-warn: #f43f5e;
+            --accent-info: #3b82f6;
+            --surface-bg: #f1f5f9;
+            --surface-card: #ffffff;
+            --border-ui: #cbd5e1;
+            --text-title: #0f172a;
+            --text-body: #334155;
+            --text-muted: #64748b;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--surface-bg);
+            color: var(--text-body);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .layout {
+            display: flex;
+            gap: 32px;
+            width: 95%;
+            max-width: 1200px;
+            padding: 40px 0;
+        }
+
+        /* 메인 패널 */
+        .main-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            min-width: 0;
+        }
+
+        /* 오른쪽 사이드바 */
+        .sidebar {
+            flex: 0 0 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .box {
+            background: var(--surface-card);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(203, 213, 225, 0.5);
+        }
+
+        .box-header {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            color: var(--brand-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 4px solid var(--brand-main);
+            padding-left: 12px;
+        }
+
+        .guide-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .guide-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            font-size: 0.9rem;
+            border-bottom: 1px dashed var(--border-ui);
+        }
+
+        .guide-list li:last-child { border: none; }
+        .guide-list li .name { color: var(--text-muted); }
+        .guide-list li .val { font-weight: 600; color: var(--brand-dark); }
+
+        /* 토글 스위치 커스텀 디자인 */
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .setting-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #e2e8f0;
+            transition: .3s;
+            border-radius: 30px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px; width: 20px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        input:checked + .slider { background-color: var(--brand-main); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* 헤더 스타일 */
+        header {
+            margin-bottom: 8px;
+        }
+
+        .logo h1 { 
+            margin: 0; 
+            font-size: 1.8rem; 
+            font-weight: 800; 
+            color: var(--brand-dark); 
+            letter-spacing: -0.05em;
+        }
+
+        .logo p { 
+            margin: 4px 0 0; 
+            color: var(--brand-main); 
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* 텍스트 에디터 구역 */
+        textarea {
+            width: 100%;
+            height: 420px;
+            border-radius: 20px;
+            border: 2px solid var(--border-ui);
+            padding: 24px;
+            font-size: 1.15rem;
+            line-height: 1.8;
+            resize: none;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s ease-in-out;
+            background: #ffffff;
+            color: var(--text-title);
+        }
+
+        textarea:focus {
+            border-color: var(--brand-main);
+            box-shadow: 0 0 0 5px rgba(13, 148, 136, 0.1);
+        }
+
+        textarea::placeholder { color: #cbd5e1; }
+
+        /* 분석 메시지 */
+        .alert-panel {
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            display: none;
+            background: var(--brand-light);
+            border-left: 4px solid var(--brand-main);
+            color: #0f766e;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        /* 대시보드 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px 16px;
+            border-radius: 20px;
+            text-align: left;
+            border: 1px solid var(--border-ui);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card .value {
+            display: block;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--brand-dark);
+            line-height: 1;
+        }
+
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-top: 8px;
+            display: block;
+        }
+
+        .stat-card::after {
+            content: "";
+            position: absolute;
+            bottom: 0; left: 0;
+            height: 4px; width: 0;
+            background: var(--brand-main);
+            transition: width 0.3s ease;
+        }
+
+        .stat-card.active::after { width: 100%; }
+
+        .limit-over .value { color: var(--accent-warn); }
+        .limit-over::after { background: var(--accent-warn); }
+
+        /* 하단 액션 버튼 */
+        .btn-group {
+            display: flex;
+            gap: 14px;
+        }
+
+        button {
+            padding: 18px 28px;
+            border: none;
+            border-radius: 16px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-secondary { background: #e2e8f0; color: #475569; flex: 0.8; }
+        .btn-outline { background: #fff; color: #64748b; border: 2px solid #e2e8f0; flex: 1; }
+        .btn-primary { 
+            background: var(--brand-dark); 
+            color: white; flex: 2;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+        }
+
+        button:hover { transform: translateY(-2px); filter: contrast(1.1); }
+        button:active { transform: scale(0.98); }
+
+        .toast {
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            background: var(--brand-dark); color: white; padding: 14px 40px;
+            border-radius: 12px; font-size: 0.95rem; font-weight: 600;
+            display: none; z-index: 2000; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        /* 모바일 레이아웃 최적화 */
+        @media (max-width: 900px) {
+            .layout { flex-direction: column; padding: 20px; }
+            .main-panel { order: 1; }
+            .sidebar { order: 2; flex: none; width: 100%; }
+            .stats-grid { grid-template-columns: 1fr; }
+            header { text-align: center; }
+            .btn-group { flex-direction: column; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<div class="layout">
+    <!-- 메인 입력 섹션 -->
+    <main class="main-panel">
+        <header>
+            <div class="logo">
+                <h1>바이트 계산기</h1>
+                <p>NEIS Byte</p>
+            </div>
+        </header>
+
+        <div id="alertBox" class="alert-panel"></div>
+
+        <div class="editor-area">
+            <textarea id="mainInput" spellcheck="false" placeholder="입력하세요."></textarea>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card active">
+                <span id="byteVal" class="value">0</span>
+                <span class="label">현재 사용 바이트</span>
+            </div>
+            <div class="stat-card active" id="remainCard">
+                <span id="remainVal" class="value">1,500</span>
+                <span class="label">남은 바이트 (1,500B 기준)</span>
+            </div>
+            <div class="stat-card active">
+                <span id="charVal" class="value">0</span>
+                <span class="label">공백 포함 글자 수</span>
+            </div>
+            <div class="stat-card active">
+                <span id="charNoSpaceVal" class="value">0</span>
+                <span class="label">공백 제외 글자 수</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-secondary" onclick="clearText()">지우기</button>
+            <button class="btn-outline" onclick="pasteText()">📋 붙여넣기</button>
+            <button class="btn-primary" onclick="copyText()">✨ 복사하기</button>
+        </div>
+    </main>
+
+    <!-- 오른쪽 가이드 & 설정 섹션 -->
+    <aside class="sidebar">
+        <div class="box">
+            <div class="box-header">📊 항목별 권장 기준</div>
+            <ul class="guide-list">
+                <li><span class="name">교과 / 개인 세특</span><span class="val">1,500 B</span></li>
+                <li><span class="name">자율 활동</span><span class="val">1,500 B</span></li>
+                <li><span class="name">동아리 활동</span><span class="val">1,500 B</span></li>
+                <li><span class="name">진로 활동</span><span class="val">2,100 B</span></li>
+                <li><span class="name">행발 및 종합의견</span><span class="val">1,500 B</span></li>
+            </ul>
+        </div>
+
+        <div class="box">
+            <div class="box-header">⚙️ (&lt;, &gt;, &amp;, ", ') 필터링</div>
+            <div class="setting-row">
+                <span style="font-size: 0.95rem; font-weight: 600;">필터링</span>
+                <label class="switch">
+                    <input type="checkbox" id="cleanToggle" onchange="toggleCleanMode()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <p class="setting-desc">
+                작성 중 나이스 금지 문자(&lt;, &gt;, &amp;, ", ')를 필터링합니다. 스위치를 끄면 삭제되었던 문자가 다시 복구됩니다.
+            </p>
+        </div>
+
+        <div class="box" style="background: var(--brand-dark); color: #fff; border: none;">
+            <div class="box-header" style="color: #fff; border-color: var(--brand-main);">💡 계산 가이드</div>
+            <p style="font-size: 0.85rem; color: #cbd5e1; margin: 0; line-height: 1.7;">
+                • <b>한글/특수문자</b>: 3바이트<br>
+                • <b>영문/숫자/공백</b>: 1바이트<br>
+                • <b>줄바꿈(엔터)</b>: 2바이트
+            </p>
+        </div>
+    </aside>
+</div>
+
+<script>
+    const input = document.getElementById('mainInput');
+    const byteVal = document.getElementById('byteVal');
+    const remainVal = document.getElementById('remainVal');
+    const charVal = document.getElementById('charVal');
+    const charNoSpaceVal = document.getElementById('charNoSpaceVal');
+    const remainCard = document.getElementById('remainCard');
+    const alertBox = document.getElementById('alertBox');
+    const cleanToggle = document.getElementById('cleanToggle');
+
+    let rawContentSnapshot = "";
+    const BAD_CHARS_REGEX = /[<>&"']/g;
+
+    function calculate() {
+        let text = input.value;
+        const maxByte = 1500;
+        let totalByte = 0;
+        let foundBadChars = [];
+
+        // 실시간 필터링 처리
+        if (cleanToggle.checked) {
+            const cleaned = text.replace(BAD_CHARS_REGEX, '');
+            if (input.value !== cleaned) {
+                const start = input.selectionStart;
+                const end = input.selectionEnd;
+                input.value = cleaned;
+                input.setSelectionRange(start, end);
+                text = cleaned;
+            }
+        }
+
+        // 바이트 연산
+        for (let i = 0; i < text.length; i++) {
+            const charCode = text.charCodeAt(i);
+            if (charCode === 10) totalByte += 2; // 요청에 따라 줄바꿈을 2바이트로 수정
+            else if (charCode > 127) totalByte += 3; // 한글/기타 유니코드 3바이트
+            else totalByte += 1; // 영어/숫자/특수문자/공백 1바이트
+        }
+
+        // 글자 수 연산
+        const charCount = text.length;
+        const charNoSpaceCount = text.replace(/\s/g, '').length;
+
+        // 금지 문자 알림 판단
+        const checkTarget = cleanToggle.checked ? rawContentSnapshot : text;
+        const matches = checkTarget.match(BAD_CHARS_REGEX);
+        if(matches) foundBadChars = [...new Set(matches)];
+
+        const remaining = maxByte - totalByte;
+        
+        byteVal.innerText = totalByte.toLocaleString();
+        charVal.innerText = charCount.toLocaleString();
+        charNoSpaceVal.innerText = charNoSpaceCount.toLocaleString();
+        remainVal.innerText = remaining.toLocaleString();
+
+        // UI 업데이트
+        if (remaining < 0) {
+            remainCard.classList.add('limit-over');
+            showAlert(`⚠️ 기준 바이트를 <b>${Math.abs(remaining).toLocaleString()}B</b> 초과했습니다. 문장을 다듬어주세요.`);
+        } else if (foundBadChars.length > 0) {
+            remainCard.classList.remove('limit-over');
+            showAlert(`🚫 나이스 금지 문자(<b>${foundBadChars.join(' ')}</b>)가 발견되었습니다. ${cleanToggle.checked ? '필터링 모드 작동 중입니다.' : '복사 시 자동 제거됩니다.'}`);
+        } else if (remaining < 150 && totalByte > 0) {
+            remainCard.classList.remove('limit-over');
+            showAlert(`💡 목표치에 근접했습니다! 약 <b>${Math.floor(remaining/3)}자</b> 정도 더 채울 수 있습니다.`);
+        } else {
+            remainCard.classList.remove('limit-over');
+            alertBox.style.display = 'none';
+        }
+    }
+
+    function showAlert(msg) {
+        alertBox.style.display = 'block';
+        alertBox.innerHTML = msg;
+    }
+
+    input.addEventListener('input', () => {
+        if (!cleanToggle.checked) {
+            rawContentSnapshot = input.value;
+        }
+        calculate();
+    });
+
+    function toggleCleanMode() {
+        if (cleanToggle.checked) {
+            rawContentSnapshot = input.value;
+            calculate();
+            showToast('필터링 필터가 가동되었습니다. ✨');
+        } else {
+            input.value = rawContentSnapshot;
+            calculate();
+            showToast('원본 데이터가 복원되었습니다. 🚀');
+        }
+    }
+
+    async function pasteText() {
+        try {
+            const text = await navigator.clipboard.readText();
+            input.value = text;
+            if (!cleanToggle.checked) rawContentSnapshot = text;
+            calculate();
+            showToast('텍스트를 불러왔습니다. ✅');
+        } catch (err) {
+            showToast('클립보드 접근 권한을 확인해주세요.');
+        }
+    }
+
+    function copyText() {
+        let content = input.value;
+        if (!content) return showToast('복사할 내용이 없습니다.');
+
+        let message = '클립보드에 복사 완료! 🚀';
+        if (!cleanToggle.checked) {
+            const originalLength = content.length;
+            content = content.replace(BAD_CHARS_REGEX, '');
+            if (content.length !== originalLength) {
+                message = '금지 문자를 안전하게 제거 후 복사했습니다! ✨';
+            }
+        }
+
+        const temp = document.createElement('textarea');
+        temp.value = content;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+
+        showToast(message);
+    }
+
+    function clearText() {
+        if(input.value && confirm('작성 중인 모든 내용을 삭제하시겠습니까?')) {
+            input.value = '';
+            rawContentSnapshot = '';
+            calculate();
+            showToast('문서가 초기화되었습니다.');
+        }
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    }
+
+    calculate();
+</script>
+
+</body>
+</html>

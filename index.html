@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NENE Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind 다크모드 클래스 설정
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --bg: #fafafa;
+            --sidebar: #ffffff;
+            --text-main: #18181b;
+            --text-sub: #71717a;
+            --accent: #0ea5e9;
+            --border: #e4e4e7;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .sidebar-btn.active {
+            background-color: #f4f4f5;
+            color: var(--accent);
+            font-weight: 600;
+        }
+        
+        /* 다크모드 대응 사이드바 버튼 */
+        .dark .sidebar-btn.active {
+            background-color: #27272a;
+        }
+
+        /* 모바일 하단바 버튼 활성화 */
+        .mobile-nav-btn.active {
+            color: var(--accent);
+        }
+
+        #canvas-wrapper {
+            max-width: 100%;
+            max-height: 60vh;
+            overflow: auto;
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark #canvas-wrapper {
+            background: #18181b;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        @media (min-width: 768px) {
+            #canvas-wrapper {
+                max-height: 75vh;
+            }
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
+
+        .tool-panel { display: none; }
+        .tool-panel.active { display: flex; }
+
+        .fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .external-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 16px;
+            background: white;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+        }
+        .dark .external-frame {
+            background: #18181b;
+        }
+
+        /* 드래그 앤 드롭 하이라이트 */
+        .drag-over {
+            border-color: var(--accent) !important;
+            background-color: rgba(14, 165, 233, 0.05) !important;
+        }
+        .dark .drag-over {
+            background-color: rgba(14, 165, 233, 0.1) !important;
+        }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row h-screen overflow-hidden dark:bg-zinc-950 dark:text-zinc-100">
+
+    <!-- 데스크톱 사이드바 -->
+    <aside class="hidden md:flex w-60 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col shrink-0">
+        <div class="p-8">
+            <h1 class="text-xl font-bold tracking-tighter text-zinc-900 dark:text-zinc-100">NENE Tool</h1>
+        </div>
+        
+        <nav class="flex-1 px-4 space-y-1">
+            <button onclick="switchTab('blur')" class="sidebar-btn active w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"></path></svg>
+                Privacy Blur
+            </button>
+            <button onclick="switchTab('byte')" class="sidebar-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                NEIS Byte
+            </button>
+            <button onclick="switchTab('about')" class="sidebar-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                About
+            </button>
+            <div class="pt-4 mt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button onclick="toggleTheme()" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+                    <span id="theme-icon-desktop">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    </span>
+                    <span id="theme-text-desktop">Dark Mode</span>
+                </button>
+            </div>
+        </nav>
+
+        <div class="p-6 border-t border-zinc-100 dark:border-zinc-800">
+            <p class="text-[9px] text-zinc-400 dark:text-zinc-500 text-center uppercase tracking-widest font-medium">© 2026 NENE TOOL</p>
+        </div>
+    </aside>
+
+    <!-- 모바일 상단바 -->
+    <header class="flex md:hidden bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-5 py-4 justify-between items-center shrink-0">
+        <h1 class="text-lg font-bold tracking-tighter text-zinc-900 dark:text-zinc-100">NENE Tool</h1>
+        <div class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase">NO Server</div>
+    </header>
+
+    <!-- 메인 공간 -->
+    <main class="flex-1 relative flex flex-col bg-[#fcfcfc] dark:bg-zinc-950 overflow-hidden transition-colors">
+        
+        <!-- Tab: Privacy Blur -->
+        <div id="tab-blur" class="tool-panel active flex-col h-full p-5 md:p-10 fade-in">
+            <header class="mb-6 md:mb-10 flex justify-between items-end shrink-0">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Privacy Blur</h2>
+                    <p class="text-zinc-500 dark:text-zinc-400 text-xs md:text-sm mt-1">드래그하여 민감 정보 마스킹</p>
+                </div>
+                <div class="hidden md:block px-3 py-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md">
+                    <span class="text-zinc-500 dark:text-zinc-400 text-[11px] font-bold flex items-center gap-1.5 uppercase tracking-tighter">
+                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                        NO Server
+                    </span>
+                </div>
+            </header>
+
+            <!-- 이미지 불러오기 (Drop Zone) -->
+            <div id="drop-zone" class="flex-1 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-2xl flex flex-col items-center justify-center transition-all hover:shadow-sm cursor-pointer group p-4 text-center">
+                <div class="w-12 h-12 bg-zinc-50 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4 transition-colors">
+                    <svg class="w-5 h-5 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </div>
+                <p class="text-sm font-medium text-zinc-600 dark:text-zinc-300 uppercase tracking-tight">이미지 불러오기</p>
+                <p class="text-[10px] md:text-xs text-zinc-400 dark:text-zinc-500 mt-1 italic">클릭/드롭 또는 붙여넣기</p>
+                <input type="file" id="file-input" class="hidden" accept="image/*">
+            </div>
+
+            <!-- 에디터 영역 -->
+            <div id="editor-ui" class="hidden flex-1 flex flex-col min-h-0 fade-in">
+                <div class="flex flex-col md:flex-row items-center justify-between mb-4 md:mb-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 md:px-5 rounded-xl shadow-sm gap-4 shrink-0">
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <label class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase shrink-0">Size</label>
+                        <input type="range" id="mosaic-size" min="5" max="50" value="15" class="w-full md:w-24 accent-zinc-800 dark:accent-zinc-400">
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto justify-end text-zinc-900 dark:text-zinc-100">
+                        <button onclick="resetCanvas()" class="px-4 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">Reset</button>
+                        <button onclick="copyToClipboard()" class="px-4 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 text-xs rounded-lg font-medium transition-colors">
+                            복사
+                        </button>
+                        <button onclick="downloadImage()" class="flex-1 md:flex-none px-5 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs rounded-lg flex items-center justify-center gap-2 font-bold transition-transform active:scale-95">
+                            저장
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="canvas-container" class="flex-1 flex items-center justify-center min-h-0 bg-[#f4f4f5] dark:bg-zinc-900/50 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-inner">
+                    <div id="canvas-wrapper">
+                        <canvas id="main-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: NEIS Byte -->
+        <div id="tab-byte" class="tool-panel flex-col h-full p-5 md:p-10 fade-in">
+            <header class="mb-4 md:mb-6 flex justify-between items-end">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">NEIS Byte</h2>
+                    <p class="text-zinc-500 dark:text-zinc-400 text-xs md:text-sm mt-1">나이스 글자 수 및 바이트 계산</p>
+                </div>
+                <button onclick="document.getElementById('byte-frame').contentWindow.location.reload()" class="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 rounded text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase">
+                    새로고침
+                </button>
+            </header>
+
+            <div class="flex-1 min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+                <iframe id="byte-frame" src="ne.html" class="external-frame" title="NEIS Byte Engine"></iframe>
+            </div>
+        </div>
+
+        <!-- Tab: About -->
+        <div id="tab-about" class="tool-panel hidden flex-col h-full p-5 md:p-10 fade-in overflow-y-auto">
+            <div class="max-w-3xl w-full mx-auto">
+                <header class="mb-10">
+                    <h2 class="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">About NENE Tool</h2>
+                </header>
+                <div class="space-y-12 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 pb-24">
+                    <section>
+                        <h3 class="text-zinc-900 dark:text-zinc-200 font-semibold mb-3 border-b border-zinc-100 dark:border-zinc-800 pb-2 text-base">서비스 소개</h3>
+                        <p>NENE Tool은 사용자의 편의와 데이터 보안을 위해 제작된 웹 유틸리티입니다. 복잡한 설치 없이 브라우저 내에서 즉시 사용 가능한 도구들을 제공합니다.</p>
+                    </section>
+                    
+                    <section class="p-6 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-xl">
+                        <h3 class="text-emerald-900 dark:text-emerald-400 font-semibold mb-3 flex items-center gap-2 text-base">보안 약속 (NO Server)</h3>
+                        <p class="text-emerald-800 dark:text-emerald-500 font-medium">귀하가 입력하거나 편집하는 모든 데이터(이미지, 텍스트 등)는 어떠한 경우에도 외부 서버로 전송되거나 저장되지 않습니다. 모든 프로세스는 사용자의 웹 브라우저 메모리 내에서만 실시간으로 처리됩니다.</p>
+                    </section>
+
+                    <section>
+                        <h3 class="text-zinc-900 dark:text-zinc-200 font-semibold mb-5 border-b border-zinc-100 dark:border-zinc-800 pb-2 text-base">사용된 라이브러리 및 기술</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                            <div>
+                                <h4 class="text-zinc-800 dark:text-zinc-300 font-bold mb-1">Tailwind CSS</h4>
+                                <p class="text-xs text-zinc-500">현대적인 UI 디자인과 반응형 레이아웃 구현을 위해 사용되었습니다.</p>
+                            </div>
+                            <div>
+                                <h4 class="text-zinc-800 dark:text-zinc-300 font-bold mb-1">HTML5 Canvas API</h4>
+                                <p class="text-xs text-zinc-500">Privacy Blur 도구의 이미지 픽셀화(Mosaic) 및 렌더링 핵심 엔진입니다.</p>
+                            </div>
+                            <div>
+                                <h4 class="text-zinc-800 dark:text-zinc-300 font-bold mb-1">Google Fonts (Inter)</h4>
+                                <p class="text-xs text-zinc-500">높은 가독성을 제공하는 'Inter' 타이포그래피가 적용되었습니다.</p>
+                            </div>
+                            <div>
+                                <h4 class="text-zinc-800 dark:text-zinc-300 font-bold mb-1">Vanilla JavaScript</h4>
+                                <p class="text-xs text-zinc-500">외부 프레임워크 없이 순수 자바스크립트로 구동되어 가볍고 빠릅니다.</p>
+                            </div>
+                            <div>
+                                <h4 class="text-zinc-800 dark:text-zinc-300 font-bold mb-1">Clipboard API</h4>
+                                <p class="text-xs text-zinc-500">이미지 및 데이터를 클립보드에 즉시 복사하는 기능을 제공합니다.</p>
+                            </div>
+                            <div>
+                                <h4 class="text-zinc-800 dark:text-zinc-300 font-bold mb-1">File & Blob API</h4>
+                                <p class="text-xs text-zinc-500">브라우저 로컬 환경에서의 이미지 로드 및 다운로드 처리에 사용됩니다.</p>
+                            </div>
+                            <div>
+                                <h4 class="text-zinc-800 dark:text-zinc-300 font-bold mb-1">Heroicons</h4>
+                                <p class="text-xs text-zinc-500">직관적인 사용자 경험을 위한 인라인 SVG 아이콘들이 사용되었습니다.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- GitHub Button Section -->
+                    <section class="pt-6 border-t border-zinc-100 dark:border-zinc-800 flex justify-center md:justify-start">
+                        <a href="https://github.com" target="_blank" class="inline-flex items-center gap-2 px-6 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95 shadow-lg">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                            GitHub 바로가기
+                        </a>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- 모바일 하단 탭 바 -->
+        <nav class="flex md:hidden bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 h-16 shrink-0 justify-around items-center">
+            <button onclick="switchTab('blur')" class="mobile-nav-btn active flex flex-col items-center gap-1 text-zinc-400 dark:text-zinc-500">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"></path></svg>
+                <span class="text-[10px] font-medium">Blur</span>
+            </button>
+            <button onclick="switchTab('byte')" class="mobile-nav-btn flex flex-col items-center gap-1 text-zinc-400 dark:text-zinc-500">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                <span class="text-[10px] font-medium">Byte</span>
+            </button>
+            <button onclick="switchTab('about')" class="mobile-nav-btn flex flex-col items-center gap-1 text-zinc-400 dark:text-zinc-500">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="text-[10px] font-medium">About</span>
+            </button>
+            <button onclick="toggleTheme()" class="mobile-nav-btn flex flex-col items-center gap-1 text-zinc-400 dark:text-zinc-500">
+                <span id="theme-icon-mobile">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </span>
+                <span class="text-[10px] font-medium">Theme</span>
+            </button>
+        </nav>
+
+    </main>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const editorUi = document.getElementById('editor-ui');
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const mosaicSlider = document.getElementById('mosaic-size');
+
+        let img = new Image();
+        let isDrawing = false;
+        let startX, startY;
+        let currentFileName = 'masked_image.png';
+
+        // --- 테마 전환 로직 ---
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.classList.toggle('dark');
+            
+            const desktopIcon = document.getElementById('theme-icon-desktop');
+            const desktopText = document.getElementById('theme-text-desktop');
+            const mobileIcon = document.getElementById('theme-icon-mobile');
+
+            const moonSvg = `<svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>`;
+            const sunSvg = `<svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-11.314l.707.707m11.314 11.314l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>`;
+
+            if (isDark) {
+                desktopIcon.innerHTML = sunSvg; mobileIcon.innerHTML = sunSvg; desktopText.innerText = "Light Mode";
+            } else {
+                desktopIcon.innerHTML = moonSvg; mobileIcon.innerHTML = moonSvg; desktopText.innerText = "Dark Mode";
+            }
+        }
+
+        // --- 탭 전환 ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tool-panel').forEach(p => { p.classList.add('hidden'); p.classList.remove('active'); });
+            document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+            
+            const targetTab = document.getElementById(`tab-${tabId}`);
+            if (targetTab) { targetTab.classList.remove('hidden'); targetTab.classList.add('active'); }
+            
+            const btns = document.querySelectorAll(`button[onclick="switchTab('${tabId}')"]`);
+            btns.forEach(b => b.classList.add('active'));
+        }
+
+        // --- 드래그 앤 드롭 로직 강화 ---
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', e => loadImage(e.target.files[0]));
+
+        dropZone.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drag-over');
+        });
+
+        ['dragleave', 'dragend'].forEach(type => {
+            dropZone.addEventListener(type, e => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('drag-over');
+            });
+        });
+
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                loadImage(e.dataTransfer.files[0]);
+            }
+        });
+
+        window.addEventListener('paste', e => {
+            const item = Array.from(e.clipboardData.items).find(x => x.type.startsWith('image'));
+            if (item) {
+                currentFileName = 'pasted_image_' + new Date().getTime() + '.png';
+                loadImage(item.getAsFile());
+            }
+        });
+
+        function loadImage(file) {
+            if (!file || !file.type.startsWith('image')) return;
+            if (file.name) currentFileName = file.name;
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    dropZone.classList.add('hidden');
+                    editorUi.classList.remove('hidden');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleStart(e) {
+            if (editorUi.classList.contains('hidden')) return;
+            isDrawing = true;
+            const pos = getEventPos(e);
+            startX = pos.x; startY = pos.y;
+        }
+
+        function handleMove(e) {
+            if (!isDrawing) return;
+            const pos = getEventPos(e);
+            applyMosaic(startX, startY, pos.x - startX, pos.y - startY);
+            startX = pos.x; startY = pos.y;
+        }
+
+        function handleEnd() { isDrawing = false; }
+
+        canvas.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+
+        canvas.addEventListener('touchstart', (e) => { 
+            if (!editorUi.classList.contains('hidden')) {
+                e.preventDefault(); handleStart(e); 
+            }
+        }, { passive: false });
+        window.addEventListener('touchmove', (e) => { handleMove(e); }, { passive: true });
+        window.addEventListener('touchend', handleEnd);
+
+        function getEventPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+        }
+
+        function applyMosaic(x, y, w, h) {
+            const size = parseInt(mosaicSlider.value);
+            const x1 = Math.min(x, x + w);
+            const y1 = Math.min(y, y + h);
+            const rw = Math.max(1, Math.abs(w));
+            const rh = Math.max(1, Math.abs(h));
+            try {
+                const data = ctx.getImageData(x1, y1, rw, rh);
+                for (let i = 0; i < rh; i += size) {
+                    for (let j = 0; j < rw; j += size) {
+                        const px = Math.min(j + Math.floor(size/2), rw - 1);
+                        const py = Math.min(i + Math.floor(size/2), rh - 1);
+                        const idx = (py * rw + px) * 4;
+                        ctx.fillStyle = `rgb(${data.data[idx]},${data.data[idx+1]},${data.data[idx+2]})`;
+                        ctx.fillRect(x1 + j, y1 + i, size, size);
+                    }
+                }
+            } catch(e) {}
+        }
+
+        function resetCanvas() { ctx.drawImage(img, 0, 0); }
+
+        async function copyToClipboard() {
+            canvas.toBlob(async blob => {
+                try {
+                    const data = [new ClipboardItem({ [blob.type]: blob })];
+                    await navigator.clipboard.write(data);
+                    showToast("클립보드에 복사되었습니다!");
+                } catch (err) { showToast("복사 실패", true); }
+            });
+        }
+
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = currentFileName;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showToast("이미지가 저장되었습니다.");
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 px-5 py-2 rounded-lg font-medium text-xs shadow-lg transition-all transform translate-y-10 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 z-50 ${isError ? 'border border-red-500' : ''}`;
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.style.transform = 'translateY(0)', 10);
+            setTimeout(() => { toast.style.transform = 'translateY(20px)'; toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
+        }
+    </script>
+</body>
+</html>
